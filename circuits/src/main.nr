@@ -11,11 +11,36 @@ fn main(
   polynomial_commitment: Field,
   nullifier: pub [u8; 32],
 ) {
-  // Write your main logic here
+
+  // Recover the signer's address from signature, hashed message and public key.
+  let key = ecrecover::secp256k1::PubKey::from_unified(pub_key);
+  let addr = key.to_eth_address();
+  std::println(addr);
+
+  // Check whether the address is included in the polynomial.
+  let eval = evaluate_polynomial(polynomial, addr);
+  assert(eval == 0);
+
+  //Check the given nullifier is a valid hash of signature.
+  let calculated_nullifier = std::hash::blake2s(signature);
+  assert(calculated_nullifier == nullifier);
+
+  let polynomial_hash = std::hash::pedersen(polynomial);
+  assert(polynomial_hash[0] == polynomial_commitment);
+
 }
 
 fn evaluate_polynomial(polynomial: [Field; CANDIDATES + 1], x: Field) -> Field {
-  // Write logic to evaluate polynomial here
+  // lets (x-a)(x-b) = x^2 -x(a + b) + ab;
+
+  let mut mult: Field = 1;
+  let mut evaluation: Field = 0;
+
+  for i in 0..polynomial.len() {
+      evaluation = mult * polynomial[i] + evaluation;
+      mult = mult * x;
+  }
+  evaluation
 }
 
 #[test]
